@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a131a">
+  <meta name="description" content="零号回路是一款数字路线解谜游戏。连接数字凑出目标值，和数字搭档小零一起接通八个回路。">
+  <title>零号回路 · Signal Link</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0a131a;
+      --panel: #101b23;
+      --inset: #13232b;
+      --border: #2a3d47;
+      --text: #eef7f4;
+      --muted: #a8bac4;
+      --mint: #a5f6cb;
+      --ink: #0f3124;
+      --lilac: #c5bbff;
+      --warning: #ffd0a0;
+      --mono: Consolas, 'SFMono-Regular', monospace;
+      font-family: 'Microsoft YaHei UI', 'PingFang SC', 'Noto Sans CJK SC', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      min-width: 300px;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 98% 0, #183331 0%, transparent 36rem),
+        linear-gradient(#30485328 1px, transparent 1px) 0 0 / 32px 32px,
+        linear-gradient(90deg, #30485328 1px, transparent 1px) 0 0 / 32px 32px,
+        var(--background);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    button:disabled { cursor: default; }
+    :focus-visible { outline: 2px solid var(--lilac); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    .wrap { width: min(1180px, calc(100% - 64px)); margin-inline: auto; }
+    .masthead { background: #0b151deb; border-bottom: 1px solid var(--border); }
+    .masthead .wrap { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .identity, .header-actions, .assistant-head, .actions, .shortcuts { display: flex; align-items: center; gap: 12px; }
+    .mark, .avatar { display: grid; place-items: center; flex: none; }
+    .mark { width: 38px; height: 38px; border-radius: 11px; color: var(--ink); background: var(--mint); }
+    .mark i { width: 18px; height: 12px; display: block; background: currentColor; clip-path: polygon(0 85%, 35% 29%, 59% 55%, 88% 0, 100% 15%, 62% 83%, 38% 55%, 10% 100%); }
+    .identity strong { display: block; font-size: 1.125rem; line-height: 1.2; }
+    .identity small { font: .75rem var(--mono); letter-spacing: .08em; color: var(--mint); }
+    .progress { font-size: .875rem; color: var(--muted); white-space: nowrap; }
+    .progress::before, .local::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--mint); vertical-align: 2px; }
+    .btn, .level {
+      min-height: 38px;
+      padding: 6px 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--inset);
+      font-size: .875rem;
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover:not(:disabled), .level:hover:not(:disabled) { background: #203942; border-color: #597a7b; }
+    .btn:disabled { color: #8fa5b0; background: #111e26; }
+    .primary { background: var(--mint); color: var(--ink); border-color: transparent; font-weight: 700; }
+    .primary:hover:not(:disabled) { background: #c8fae0; border-color: transparent; }
+    .level-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: 26px 0 23px; }
+    .level-tag { display: flex; align-items: center; gap: 10px; color: var(--mint); font-size: .875rem; font-weight: 700; letter-spacing: .04em; }
+    .level-tag::before { content: ''; width: 23px; border-top: 2px solid; }
+    h1, h2, p { margin: 0; }
+    h1 { margin: 3px 0 4px; font-size: clamp(2.15rem, 4.4vw, 3.15rem); line-height: 1.22; }
+    .introduction { color: var(--muted); }
+    .level-picker { flex: 0 0 auto; }
+    .level-picker p { font-size: .875rem; color: var(--muted); margin-bottom: 7px; }
+    .levels { display: grid; grid-template-columns: repeat(8, minmax(31px, 40px)); gap: 6px; }
+    .level { width: 100%; padding-inline: 0; font: 700 .875rem var(--mono); color: var(--mint); background: #14232a; }
+    .level:disabled { color: #8da4b0; background: #101c23; }
+    .level[aria-current], .level[aria-current]:hover { background: var(--mint); border-color: var(--mint); color: var(--ink); }
+    .game { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(330px, 1fr); gap: 17px; }
+    .panel { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 17px; box-shadow: 0 9px 26px #0003; }
+    .board-panel { display: grid; grid-template-rows: auto 1fr auto; min-height: 475px; padding: 16px; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr 1.55fr; gap: 0; margin: 0; padding: 9px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--inset); }
+    .metric { min-width: 0; padding: 0 clamp(9px, 2vw, 18px); }
+    .metric + .metric { border-left: 1px solid var(--border); }
+    .metric dt { font-size: .8125rem; color: var(--muted); }
+    .metric dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 13px; font: 700 clamp(1.35rem, 2.6vw, 1.85rem) / 1.17 var(--mono); white-space: nowrap; }
+    .goal { color: var(--mint); }
+    .meter { display: flex; gap: 3px; }
+    .meter i { width: 4px; height: 12px; border-radius: 2px; background: #35505a; }
+    .meter i.on { background: var(--mint); }
+    .board-area { min-width: 0; display: grid; place-items: center; padding: 19px 5px; }
+    .board { --size: 4; --gap: 8px; width: min(100%, 324px); display: grid; grid-template-columns: repeat(var(--size), minmax(0, 1fr)); gap: var(--gap); }
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #15252e;
+      font: 700 clamp(1.15rem, 4vw, 1.8rem) var(--mono);
+      touch-action: manipulation;
+    }
+    .cell.adjacent { background: #172d32; border-color: #4a746f; }
+    .cell.negative, .cell.end { color: var(--lilac); }
+    .cell.end { background: #222741; border-color: #6f66a5; }
+    .cell.route { background: #203c37; border-color: #649d87; color: var(--mint); }
+    .cell.last { border-color: var(--mint); box-shadow: 0 0 0 3px #a5f6cb23; }
+    .cell.hint { border-color: var(--lilac); box-shadow: 0 0 0 3px #c5bbff49; }
+    .cell.blocked { color: #829aa5; background: repeating-linear-gradient(135deg, #13212a 0 6px, #192933 7px, #13212a 8px 13px); }
+    .cell:hover:not(.blocked) { border-color: var(--mint); }
+    .cell::before, .cell::after { content: ''; position: absolute; display: none; background: #76b29a; pointer-events: none; }
+    .cell.right-link::before { display: block; width: calc(var(--gap) + 2px); height: 3px; left: 100%; top: calc(50% - 1px); }
+    .cell.down-link::after { display: block; height: calc(var(--gap) + 2px); width: 3px; top: 100%; left: calc(50% - 1px); }
+    .terminal { display: grid; justify-items: center; gap: 4px; font: 700 .75rem / 1.2 system-ui, sans-serif; }
+    .terminal::before { content: ''; width: 14px; height: 14px; border: 1px solid currentColor; border-radius: 50%; background: radial-gradient(circle, currentColor 0 2px, transparent 2.5px); }
+    .board-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .board-foot .actions { flex: none; gap: 6px; }
+    .notice { text-align: end; font-size: .875rem; color: var(--muted); }
+    .notice.warning { color: var(--warning); }
+    .assistant { display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto auto; gap: 12px; padding: 16px; }
+    .assistant-head { padding-bottom: 13px; border-bottom: 1px solid var(--border); }
+    .avatar { width: 46px; height: 46px; border: 1px solid #514e78; border-radius: 12px; background: #292944; }
+    .avatar::before { content: ''; width: 29px; height: 29px; background: var(--lilac); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+    .assistant h2 { font-size: 1.35rem; line-height: 1.25; }
+    .assistant-head p { font-size: .875rem; color: var(--muted); }
+    .local { margin-left: auto; flex: none; border: 1px solid #32604f; border-radius: 999px; padding: 4px 8px; background: #19302e; color: var(--mint); font-size: .75rem; }
+    .messages { height: 220px; overflow: auto; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding-right: 4px; scrollbar-width: thin; }
+    .message { max-width: 96%; background: var(--inset); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; overflow-wrap: anywhere; }
+    .message strong { display: block; margin-bottom: 2px; font-size: .75rem; color: var(--lilac); }
+    .message.player { align-self: flex-end; background: #1a3030; border-color: #34564c; }
+    .message.player strong { color: var(--mint); }
+    .suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border); }
+    .question { display: flex; gap: 7px; padding: 5px; border: 1px solid var(--border); border-radius: 9px; background: var(--background); }
+    .question:focus-within { border-color: var(--mint); }
+    .question input { min-width: 0; width: 100%; padding: 5px 6px; border: 0; outline: 0; color: var(--text); background: transparent; }
+    .question input::placeholder { color: var(--muted); }
+    .question .btn { flex: none; }
+    .assistant-foot { font-size: .75rem; color: var(--muted); }
+    .shortcuts { flex-wrap: wrap; color: var(--muted); margin: 17px 0; padding: 11px 0 0; border-top: 1px solid var(--border); font-size: .8125rem; }
+    kbd { display: inline-block; margin-right: 5px; padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); font: .8125rem var(--mono); }
+    dialog { width: min(510px, calc(100% - 28px)); padding: clamp(18px, 5vw, 30px); border: 1px solid #577178; border-radius: 16px; background: var(--panel); color: var(--text); }
+    dialog::backdrop { background: #060d13ce; }
+    dialog h2 { margin-bottom: 10px; font-size: 1.7rem; }
+    dialog p, dialog ol { color: var(--muted); margin-bottom: 13px; }
+    dialog ol { padding-left: 1.35em; }
+    dialog li { padding-block: 3px; }
+    dialog .actions { flex-wrap: wrap; margin-top: 18px; }
+    #saved { color: var(--mint); }
+    @media (max-width: 850px) {
+      .wrap { width: calc(100% - 34px); }
+      .game { grid-template-columns: minmax(0, 1.25fr) minmax(305px, 1fr); gap: 11px; }
+      .level-heading { gap: 14px; }
+      .board-panel, .assistant { padding: 12px; }
+    }
+    @media (max-width: 650px) {
+      .wrap { width: calc(100% - 24px); }
+      .masthead .wrap { min-height: 62px; }
+      .identity, .header-actions { gap: 8px; }
+      .progress::before { display: none; }
+      .level-heading { display: block; padding: 17px 0 15px; }
+      .level-picker { margin-top: 12px; }
+      .levels { grid-template-columns: repeat(8, minmax(0, 1fr)); max-width: 405px; }
+      .game { grid-template-columns: minmax(0, 1fr); }
+      .board-panel { min-height: 0; }
+      .board-area { padding: 15px 3px; }
+      .board { width: min(100%, 304px); }
+      .board-foot { gap: 8px; }
+      .board-foot .btn { padding-inline: 8px; }
+      .notice { font-size: .8125rem; }
+      .messages { height: 165px; }
+      .shortcuts { display: none; }
+      .game { margin-bottom: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <div class="identity"><span class="mark" aria-hidden="true"><i></i></span><div><strong>零号回路</strong><small>SIGNAL LINK</small></div></div>
+      <div class="header-actions"><span class="progress" id="progress"></span><button class="btn" id="help" type="button">玩法</button></div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="level-heading" aria-labelledby="level-name">
+      <div><p class="level-tag" id="level-tag"></p><h1 id="level-name"></h1><p class="introduction" id="introduction"></p></div>
+      <nav class="level-picker" aria-label="关卡选择"><p>关卡选择</p><div class="levels" id="levels"></div></nav>
+    </section>
+    <div class="game">
+      <section class="board-panel panel" aria-label="数字棋盘">
+        <dl class="metrics">
+          <div class="metric"><dt>目标值</dt><dd class="goal" id="target"></dd></div>
+          <div class="metric"><dt>累计值</dt><dd id="sum"></dd></div>
+          <div class="metric"><dt>数字格</dt><dd><span id="steps"></span><span class="meter" id="meter" aria-hidden="true"></span></dd></div>
+        </dl>
+        <div class="board-area"><div class="board" id="board" role="group" aria-label="路线棋盘"></div></div>
+        <div class="board-foot"><div class="actions"><button class="btn" id="undo" type="button">撤一步</button><button class="btn" id="reset" type="button">重来</button></div><p class="notice" id="notice" role="status"></p></div>
+      </section>
+      <section class="assistant panel" aria-labelledby="assistant-name">
+        <header class="assistant-head"><span class="avatar" aria-hidden="true"></span><div><h2 id="assistant-name">小零</h2><p>AI 数字搭档</p></div><span class="local">本地求解</span></header>
+        <div class="messages" id="chat" role="log" aria-label="与小零的对话"></div>
+        <div class="suggestions"><button class="btn" type="button" data-question="下一步">下一步</button><button class="btn" type="button" data-question="检查路线">检查路线</button><button class="btn" type="button" data-question="规则">规则</button></div>
+        <form class="question" id="question-form"><input id="question" aria-label="向小零提问" placeholder="问小零如何走……" maxlength="72" autocomplete="off" enterkeyhint="send"><button class="btn primary" type="submit">发送</button></form>
+        <p class="assistant-foot">路线提示在浏览器里计算，通关进度保存在当前浏览器。</p>
+      </section>
+    </div>
+    <footer class="shortcuts" aria-label="键盘快捷键"><span><kbd>↑ ↓ ← →</kbd>移动</span><span><kbd>Enter</kbd>选格</span><span><kbd>U</kbd>撤一步</span><span><kbd>H</kbd>提示</span></footer>
+  </main>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <form method="dialog">
+      <h2 id="help-title">接入回路</h2>
+      <ol><li>从起点出发，每次选择上下左右相邻的格子。</li><li>按规定步数走过数字格，把数值相加。起点和终点不计步，负数照常相加。</li><li>累计值等于目标值时，点亮相邻的终点。点击走过的格子可以回退。</li></ol>
+      <button class="btn primary" autofocus>返回棋盘</button>
+    </form>
+  </dialog>
+  <dialog id="win-dialog" aria-labelledby="win-title">
+    <form method="dialog">
+      <h2 id="win-title"></h2><p id="win-stats"></p><p id="saved"></p>
+      <div class="actions"><button class="btn primary" id="next" value="next" autofocus>下一关</button><button class="btn" value="review">回看路线</button></div>
+    </form>
+  </dialog>
+  <noscript><p class="wrap">请启用 JavaScript 后游玩《零号回路》。</p></noscript>
+  <script>
+    'use strict';
+
+    const puzzles = [
+      {name: '首次接入', intro: '从起点连到终点，让走过的数字凑成目标值。', size: 4, steps: 5, target: 33, cells: [0, 7, 2, 9, 6, 6, 4, 5, 7, 1, 7, 9, 4, 99, 7, 0]},
+      {name: '绕行指令', intro: '断开的节点需要绕行，留意剩下的步数。', size: 4, steps: 7, target: 38, cells: [0, 5, 8, 8, 8, 9, 9, 99, 99, 4, 5, 5, 5, 7, 3, 0]},
+      {name: '扩容测试', intro: '网格扩展到了五行五列，先看清终点在哪。', size: 5, steps: 7, target: 45, cells: [0, 5, 2, 9, 8, 7, 5, 4, 3, 9, 6, 6, 7, 99, 7, 9, 7, 3, 1, 2, 8, 99, 4, 9, 0]},
+      {name: '负值干扰', intro: '负数会降低累计值，超过目标时也可能有解。', size: 5, steps: 7, target: 22, cells: [0, -9, -8, 6, 99, 9, 9, 4, 5, -7, 5, 5, 99, -7, 7, 7, 7, 3, 8, -1, 6, 99, -4, -2, 0]},
+      {name: '交错频段', intro: '几条路线看起来很像，试试从终点反推。', size: 5, steps: 9, target: 55, cells: [0, -2, -9, 7, 3, 9, -2, 3, 4, 4, 7, 7, 8, 5, 3, -3, 6, 9, 7, 6, 99, 99, 1, 99, 0]},
+      {name: '深层网格', intro: '路线更长了，留意哪些格子会挡住回程。', size: 5, steps: 9, target: 21, cells: [0, -5, 5, 7, 99, -9, 4, 99, 1, -9, 5, 6, -7, 6, -5, 6, 99, 2, 99, 4, -8, 9, 7, -3, 0]},
+      {name: '余量临界', intro: '空间收紧，选中的数字和落脚位置同样重要。', size: 5, steps: 11, target: 5, cells: [0, 99, -4, 2, 9, -9, 8, 9, 1, 6, -5, -8, 99, -9, 9, 1, 5, 2, 99, 3, 3, -9, -6, 99, 0]},
+      {name: '零号回路', intro: '最后一次接入。用上你和小零的配合。', size: 5, steps: 11, target: 26, cells: [0, 7, 7, -9, -8, 99, 8, 9, 99, 99, 6, -8, -7, 6, 8, 99, -4, -8, -8, 9, 1, -8, -6, 99, 0]},
+    ];
+
+    const blocked = 99;
+    const storageKey = 'linghaohuilu.completed.v1';
+    const el = id => document.getElementById(id);
+    const board = el('board');
+    const chat = el('chat');
+    const input = el('question');
+    const helpDialog = el('help-dialog');
+    const winDialog = el('win-dialog');
+    const displayNumber = number => String(number).replace('-', '−');
+    const levelNumber = index => String(index + 1).padStart(2, '0');
+
+    let completed = readProgress();
+    let levelIndex;
+    let puzzle;
+    let end;
+    let route;
+    let tiles;
+    let tabs;
+    let meter;
+    let focusCell;
+    let hint;
+    let notice;
+
+    function readProgress() {
+      try {
+        const count = Number(localStorage.getItem(storageKey));
+        return Number.isInteger(count) ? Math.min(puzzles.length, Math.max(count, 0)) : 0;
+      } catch { return 0; }
+    }
+
+    function saveProgress() {
+      completed = Math.max(completed, levelIndex + 1, readProgress());
+      try { localStorage.setItem(storageKey, String(completed)); return true; }
+      catch { return false; }
+    }
+
+    function neighbors(cell, size) {
+      const row = Math.floor(cell / size);
+      const column = cell % size;
+      const next = [];
+      if (row > 0) next.push(cell - size);
+      if (column < size - 1) next.push(cell + 1);
+      if (row < size - 1) next.push(cell + size);
+      if (column > 0) next.push(cell - 1);
+      return next;
+    }
+
+    function findSolutions(stage) {
+      const { size, cells, steps, target } = stage;
+      const destination = cells.length - 1;
+      const solutions = [];
+      const path = [0];
+      function visit(cell, seen, sum) {
+        const remaining = steps + 2 - path.length;
+        if (cell === destination) {
+          if (remaining === 0 && sum === target) solutions.push(path.slice());
+          return;
+        }
+        const distance = 2 * (size - 1) - Math.floor(cell / size) - cell % size;
+        if (distance > remaining) return;
+        for (const next of neighbors(cell, size)) {
+          if (cells[next] === blocked || (seen & (1 << next))) continue;
+          path.push(next);
+          visit(next, seen | (1 << next), sum + cells[next]);
+          path.pop();
+        }
+      }
+      visit(0, 1, 0);
+      return solutions;
+    }
+
+    function loadLevel(index) {
+      levelIndex = index;
+      puzzle = puzzles[index];
+      end = puzzle.cells.length - 1;
+      route = [0];
+      hint = null;
+      notice = '';
+      focusCell = 0;
+      input.value = '';
+      el('level-tag').textContent = `关卡 ${levelNumber(index)}`;
+      el('level-name').textContent = puzzle.name;
+      el('introduction').textContent = puzzle.intro;
+      el('target').textContent = displayNumber(puzzle.target);
+      board.style.setProperty('--size', puzzle.size);
+      tiles = puzzle.cells.map((value, cell) => {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'cell';
+        if (cell === 0 || cell === end) {
+          const terminal = document.createElement('span');
+          terminal.className = 'terminal';
+          terminal.textContent = cell === 0 ? '起点' : '终点';
+          tile.append(terminal);
+        } else {
+          tile.textContent = value === blocked ? '–' : displayNumber(value);
+        }
+        tile.setAttribute('aria-label', cellName(cell));
+        tile.addEventListener('focus', () => setFocusCell(cell));
+        tile.addEventListener('click', () => move(cell));
+        return tile;
+      });
+      board.replaceChildren(...tiles);
+      meter = Array.from({ length: puzzle.steps }, () => document.createElement('i'));
+      el('meter').replaceChildren(...meter);
+      chat.replaceChildren();
+      addMessage(false, index === 0
+        ? '我是小零。点击起点旁的数字开始，最后点亮终点。卡住时，可以让我检查路线。'
+        : `这一关要经过 ${puzzle.steps} 个数字格，凑出 ${puzzle.target}。需要时，我可以帮你检查当前路线。`);
+      render();
+    }
+
+    function cellName(cell) {
+      if (cell === 0) return '起点';
+      if (cell === end) return '终点';
+      const value = puzzle.cells[cell];
+      return `第 ${Math.floor(cell / puzzle.size) + 1} 行第 ${cell % puzzle.size + 1} 列（${value === blocked ? '断开' : displayNumber(value)}）`;
+    }
+
+    function lastCell() { return route[route.length - 1]; }
+    function isWon() { return lastCell() === end; }
+    function stepsUsed() { return route.length - (isWon() ? 2 : 1); }
+    function total() { return route.reduce((sum, cell) => sum + puzzle.cells[cell], 0); }
+
+    function render() {
+      const won = isWon();
+      const steps = stepsUsed();
+      const sum = total();
+      el('progress').textContent = `已接通 ${completed} / ${puzzles.length}`;
+      el('steps').textContent = `${steps} / ${puzzle.steps}`;
+      el('sum').textContent = displayNumber(sum);
+      el('sum').classList.toggle('goal', sum === puzzle.target);
+      el('undo').disabled = route.length < 2 || won;
+      el('reset').disabled = route.length < 2;
+      el('notice').textContent = notice || (won ? '回路已接通' : steps === 0 ? '从起点旁的数字开始' : '点击走过的格子可回退');
+      el('notice').classList.toggle('warning', Boolean(notice));
+      meter.forEach((bar, index) => bar.classList.toggle('on', index < steps));
+      tabs.forEach((tab, index) => {
+        tab.disabled = index > completed;
+        if (index === levelIndex) tab.setAttribute('aria-current', 'step');
+        else tab.removeAttribute('aria-current');
+      });
+      const adjacent = won ? [] : neighbors(lastCell(), puzzle.size);
+      tiles.forEach((tile, cell) => {
+        const value = puzzle.cells[cell];
+        const chosen = route.includes(cell);
+        tile.className = 'cell';
+        if (value === blocked) tile.classList.add('blocked');
+        if (value < 0) tile.classList.add('negative');
+        if (cell === end) tile.classList.add('end');
+        if (chosen) tile.classList.add('route');
+        if (!chosen && value !== blocked && adjacent.includes(cell)) tile.classList.add('adjacent');
+        if (cell === lastCell()) tile.classList.add('last');
+        if (cell === hint) tile.classList.add('hint');
+        tile.setAttribute('aria-pressed', String(chosen));
+        tile.setAttribute('aria-label', cell === hint ? `${cellName(cell)}，小零的提示` : cellName(cell));
+      });
+      for (let i = 1; i < route.length; i++) {
+        const start = Math.min(route[i - 1], route[i]);
+        tiles[start].classList.add(Math.abs(route[i - 1] - route[i]) === 1 ? 'right-link' : 'down-link');
+      }
+      setFocusCell(focusCell);
+    }
+
+    function setFocusCell(cell) {
+      focusCell = cell;
+      tiles.forEach((tile, index) => { tile.tabIndex = index === cell ? 0 : -1; });
+    }
+
+    function move(cell) {
+      if (isWon() || cell === lastCell()) return;
+      const previous = route.indexOf(cell);
+      if (previous >= 0) route.length = previous + 1;
+      else if (puzzle.cells[cell] === blocked) return rejectMove('这个格子断开了，试试绕行。');
+      else if (!neighbors(lastCell(), puzzle.size).includes(cell)) return rejectMove('请选择路线末端上下左右相邻的格子。');
+      else if (cell === end) {
+        if (stepsUsed() !== puzzle.steps) return rejectMove(`进入终点前，需要走满 ${puzzle.steps} 个数字格。`);
+        if (total() !== puzzle.target) return rejectMove('累计值与目标不同，试试调整路线。');
+        route.push(cell);
+        finish();
+      } else {
+        if (stepsUsed() === puzzle.steps) return rejectMove('数字格已走满，去终点或撤一步。');
+        route.push(cell);
+      }
+      hint = null;
+      notice = '';
+      render();
+    }
+
+    function rejectMove(reason) { notice = reason; render(); }
+
+    function undo() {
+      if (route.length < 2 || isWon()) return;
+      route.pop();
+      updateAfterReset();
+    }
+
+    function reset() {
+      route = [0];
+      updateAfterReset();
+    }
+
+    function updateAfterReset() {
+      hint = null;
+      notice = '';
+      const wasOnBoard = board.contains(document.activeElement);
+      setFocusCell(lastCell());
+      if (wasOnBoard) tiles[focusCell].focus();
+      render();
+    }
+
+    function finish() {
+      const saved = saveProgress();
+      const finalLevel = levelIndex === puzzles.length - 1;
+      addMessage(false, '终点信号已接通。步数和累计值都对上了！');
+      el('win-title').textContent = finalLevel ? '全部回路已接通' : '回路已接通';
+      el('win-stats').textContent = `你经过了 ${stepsUsed()} 个数字格，累计值正好为 ${displayNumber(total())}。`;
+      el('saved').textContent = saved ? `进度已保存 · ${completed} / ${puzzles.length}` : '进度已更新，当前浏览器无法保存。';
+      el('next').textContent = finalLevel ? '从第一关开始' : '下一关';
+      winDialog.returnValue = '';
+      winDialog.showModal();
+    }
+
+    function addMessage(player, text) {
+      const bubble = document.createElement('div');
+      bubble.className = player ? 'message player' : 'message';
+      const name = document.createElement('strong');
+      name.textContent = player ? '你' : '小零';
+      const body = document.createElement('p');
+      body.textContent = text;
+      bubble.append(name, body);
+      chat.append(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function ask(question) {
+      addMessage(true, question);
+      hint = null;
+      let reply;
+      if (/规则|怎么玩|斜|重复|负数|怎么算|rules?/i.test(question)) {
+        reply = '只能上下左右移动，数字格不能重复走。负数照常相加，起点和终点不计入步数。步数和总和都达标才可接入。';
+      } else if (/还差|目标|累计|几步|多少|进度|sum/i.test(question)) {
+        reply = `当前累计值为 ${displayNumber(total())}，还有 ${puzzle.steps - stepsUsed()} 个数字格可走。剩下的格子合计要贡献 ${displayNumber(puzzle.target - total())}。`;
+      } else if (/下一步|提示|去哪|怎么走|在哪|帮|hint|next|检查|路线|能通|退|卡/i.test(question)) {
+        reply = analyze(/下一步|提示|去哪|怎么走|在哪|帮|next|hint/i.test(question));
+      } else if (/你好|哈喽|你是谁|hello|谢谢/i.test(question)) {
+        reply = '我是小零，负责给你的数字路线做计算。你可以问我还差多少，或者请我检查当前路线。';
+      } else {
+        reply = '可以试试问「下一步」「检查路线」「还差多少」或「规则」。';
+      }
+      addMessage(false, reply);
+      render();
+    }
+
+    function analyze(wantHint) {
+      if (isWon()) return '这条路线已接通。选择上面的关卡，可以开始新的挑战。';
+      puzzle.solutions ??= findSolutions(puzzle);
+      let prefix = route.length;
+      let solution;
+      while (prefix > 0) {
+        solution = puzzle.solutions.find(path => route.slice(0, prefix).every((cell, index) => path[index] === cell));
+        if (solution) break;
+        prefix--;
+      }
+      if (!solution) return '这关的路线数据无法求解，请刷新页面后再试。';
+      if (prefix < route.length) {
+        hint = route[prefix - 1];
+        return `沿当前路线继续走，无法同时满足步数和总和。点击高亮的${cellName(hint)}，回退 ${route.length - prefix} 步后再试。`;
+      }
+      if (!wantHint) return `这条路线还有解。剩下 ${puzzle.steps - stepsUsed()} 个数字格需要凑出 ${displayNumber(puzzle.target - total())}。`;
+      hint = solution[prefix];
+      return hint === end ? '条件都已满足。点击高亮的终点，接通回路。' : `下一步可以走到${cellName(hint)}。我已经在棋盘上帮你标出来了。`;
+    }
+
+    tabs = puzzles.map((stage, index) => {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = 'level';
+      tab.textContent = levelNumber(index);
+      tab.setAttribute('aria-label', `第 ${index + 1} 关 ${stage.name}`);
+      tab.addEventListener('click', () => { if (levelIndex !== index) loadLevel(index); });
+      return tab;
+    });
+    el('levels').replaceChildren(...tabs);
+    el('help').addEventListener('click', () => helpDialog.showModal());
+    el('undo').addEventListener('click', undo);
+    el('reset').addEventListener('click', reset);
+    winDialog.addEventListener('close', () => {
+      if (winDialog.returnValue === 'next') {
+        loadLevel((levelIndex + 1) % puzzles.length);
+        tiles[0].focus({ preventScroll: true });
+      }
+    });
+    document.querySelectorAll('[data-question]').forEach(button => {
+      button.addEventListener('click', () => ask(button.dataset.question));
+    });
+    el('question-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question) { input.focus(); return; }
+      input.value = '';
+      ask(question);
+    });
+    window.addEventListener('storage', event => {
+      if (event.key !== storageKey) return;
+      completed = Math.max(completed, readProgress());
+      render();
+    });
+    window.addEventListener('keydown', event => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || helpDialog.open || winDialog.open) return;
+      if (event.key === 'Escape' && event.target === input) { tiles[focusCell].focus(); return; }
+      if (event.target === input) return;
+      const key = event.key.toLowerCase();
+      if (key === 'h' || key === 'u' || key === 'r') {
+        event.preventDefault();
+        if (key === 'h') ask('下一步');
+        if (key === 'u') undo();
+        if (key === 'r') reset();
+        return;
+      }
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      if (!board.contains(event.target) && event.target !== document.body) return;
+      event.preventDefault();
+      let row = Math.floor(focusCell / puzzle.size);
+      let column = focusCell % puzzle.size;
+      if (event.key === 'ArrowUp') row--;
+      if (event.key === 'ArrowDown') row++;
+      if (event.key === 'ArrowLeft') column--;
+      if (event.key === 'ArrowRight') column++;
+      const clamp = n => Math.max(0, Math.min(puzzle.size - 1, n));
+      tiles[clamp(row) * puzzle.size + clamp(column)].focus();
+    });
+    loadLevel(Math.min(completed, puzzles.length - 1));
+  </script>
+</body>
+</html>
